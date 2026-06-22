@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Message App</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>💬 Message App</h1>
+      <p>Type something and send it to database</p>
+    </div>
+
+    <div class="input-section">
+      <textarea id="messageInput" placeholder="Enter your message..." rows="3"></textarea>
+      <button onclick="sendMessage()">Send</button>
+    </div>
+
+    <div id="messages" class="messages-section">
+      <p>Loading messages...</p>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = window.location.origin + '/api/messages';
+
+    // Load messages on page load
+    document.addEventListener('DOMContentLoaded', loadMessages);
+
+    // Load Enter key to send
+    document.getElementById('messageInput').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter' && e.ctrlKey) {
+        sendMessage();
+      }
+    });
+
+    async function loadMessages() {
+      try {
+        const response = await fetch(API_URL);
+        const messages = await response.json();
+        displayMessages(messages);
+      } catch (error) {
+        console.error('Error loading messages:', error);
+        document.getElementById('messages').innerHTML = '<p>Error loading messages</p>';
+      }
+    }
+
+    function displayMessages(messages) {
+      const messagesDiv = document.getElementById('messages');
+      
+      if (messages.length === 0) {
+        messagesDiv.innerHTML = '<p class="empty">No messages yet. Send one!</p>';
+        return;
+      }
+
+      messagesDiv.innerHTML = messages.map(msg => `
+        <div class="message-card">
+          <p class="message-text">${escapeHtml(msg.text)}</p>
+          <small class="message-time">${new Date(msg.created_at).toLocaleString()}</small>
+        </div>
+      `).join('');
+    }
+
+    async function sendMessage() {
+      const text = document.getElementById('messageInput').value;
+
+      if (!text.trim()) {
+        alert('Please enter a message');
+        return;
+      }
+
+      try {
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text })
+        });
+
+        if (response.ok) {
+          document.getElementById('messageInput').value = '';
+          loadMessages();
+        } else {
+          alert('Error sending message');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Error sending message');
+      }
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+  </script>
+</body>
+</html>
